@@ -3,7 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل دخول ريسبكت </title>
+    <title>تسجيل دخول ريسبكت</title>
+    
+    <!-- ميتا تاج Open Graph لتحسين عرض الرابط في ديسكورد -->
+    <meta property="og:title" content="Respect CFW SA:MP ريسبكت">
+    <meta property="og:description" content="مجتمع قراند حياة واقعية للجوال و الكمبيوتر SA:MP CFW">
+    <meta property="og:image" content="https://media.discordapp.net/attachments/1302017284058906644/1349929223447646248/respect_samp.webp">
+    <meta property="og:url" content="https://respect-sart.vercel.app/">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
         
@@ -11,7 +20,7 @@
             font-family: 'Tajawal', sans-serif;
             text-align: center;
             padding: 50px;
-            background: url('https://media.discordapp.net/attachments/1302017284058906644/1349832620610949141/Respect_SAMP2.png?ex=67d87d97&is=67d72c17&hm=f04d4bc485cdf1c424f9758480675e55972fa2dc4e7dd6e37003c9232bbaed13&=&format=webp&quality=lossless&width=858&height=482') no-repeat center center/cover;
+            background: url('https://media.discordapp.net/attachments/1302017284058906644/1349832620610949141/Respect_SAMP2.png') no-repeat center center/cover;
             color: white;
             min-height: 100vh;
             display: flex;
@@ -20,14 +29,6 @@
             align-items: center;
             backdrop-filter: blur(5px);
         }
-
-
-<meta property="og:title" content="Respect CFW SA:MP ريسبكت">
-<meta property="og:description" content="مجتمع قراند حياة واقعية للجوال و الكمبيوتر SA:MP CFW ">
-<meta property="og:image" content="https://media.discordapp.net/attachments/1302017284058906644/1349929223447646248/respect_samp.webp?ex=67d8d78f&is=67d7860f&hm=b4f30255424873bd3e6c0118e210aea667cdef3fd5594640a08567c8a12784ac&=&format=webp&width=280&height=280">
-<meta property="og:url" content="https://respect-sart.vercel.app/">
-<meta property="og:type" content="website">
-<meta name="twitter:card" content="summary_large_image">
 
         h1 {
             font-size: 2.5rem;
@@ -52,39 +53,18 @@
             transform: scale(1.1);
             box-shadow: 0px 6px 20px rgba(255, 204, 0, 0.8);
         }
-        .user-info {
-            margin-top: 30px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 20px;
-            border-radius: 15px;
-            display: none;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
-        }
-        .user-info img {
-            border-radius: 50%;
-            width: 100px;
-            height: 100px;
-            border: 3px solid #ffcc00;
-        }
         .content {
             display: none;
         }
     </style>
 </head>
 <body>
-
     <div id="login-page">
         <h1>تسجيل دخول رسبكت سامب</h1>
         <a class="login-btn" id="login-btn" href="javascript:void(0);" onclick="loginWithDiscord()">تسجيل الدخول</a>
     </div>
 
     <div id="content-page" class="content">
-        <div class="user-info" id="user-info">
-            <img id="user-avatar" src="" alt="الصورة الرمزية">
-            <h2 id="username"></h2>
-            <p id="user-id"></p>
-            <button class="login-btn" onclick="logout()">تسجيل الخروج</button>
-        </div>
         <h1>مرحبًا بك في الموقع!</h1>
         <p>هذا المحتوى مرئي فقط بعد تسجيل الدخول.</p>
     </div>
@@ -98,47 +78,6 @@
             const AUTH_URL = `https://discord.com/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=${SCOPE}`;
             window.open(AUTH_URL, "_blank", "width=500,height=600");
         }
-
-        function getAccessToken() {
-            const hash = window.location.hash.substring(1);
-            const params = new URLSearchParams(hash);
-            return params.get("access_token");
-        }
-
-        async function fetchUserData(token) {
-            if (!token) return;
-            const response = await fetch("https://discord.com/api/users/@me", {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            const userData = await response.json();
-            showUserInfo(userData);
-        }
-
-        function showUserInfo(user) {
-            document.getElementById("user-avatar").src = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`;
-            document.getElementById("username").textContent = `مرحبًا، ${user.username}#${user.discriminator}`;
-            document.getElementById("user-id").textContent = `ID: ${user.id}`;
-            document.getElementById("user-info").style.display = "block";
-            document.getElementById("login-page").style.display = "none";
-            document.getElementById("content-page").style.display = "block";
-            localStorage.setItem("discord_token", getAccessToken());
-        }
-
-        function logout() {
-            localStorage.removeItem("discord_token");
-            window.location.href = REDIRECT_URI;
-        }
-
-        window.onload = () => {
-            const token = localStorage.getItem("discord_token") || getAccessToken();
-            if (token) {
-                fetchUserData(token);
-            } else {
-                document.getElementById("login-page").style.display = "block";
-                document.getElementById("content-page").style.display = "none";
-            }
-        };
     </script>
-
 </body>
 </html>

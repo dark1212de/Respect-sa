@@ -62,18 +62,59 @@
             max-width: 80%;
             word-wrap: break-word;
         }
+        #login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+            width: 80%;
+            max-width: 400px;
+        }
+        input {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            font-family: 'Tajawal', sans-serif;
+        }
+        .form-group {
+            text-align: right;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
     <div id="login-page">
         <h1>Respect Login</h1>
-        <a class="login-btn" id="login-btn" href="javascript:void(0);" onclick="loginWithDiscord()">تسجيل الدخول</a>
+        
+        <div id="login-form">
+            <div class="form-group">
+                <label for="username">اسم المستخدم:</label>
+                <input type="text" id="username" placeholder="أدخل اسم المستخدم">
+            </div>
+            
+            <div class="form-group">
+                <label for="email">البريد الإلكتروني:</label>
+                <input type="email" id="email" placeholder="أدخل البريد الإلكتروني">
+            </div>
+            
+            <a class="login-btn" id="login-btn" href="javascript:void(0);" onclick="submitLogin()">تسجيل الدخول</a>
+        </div>
+        
+        <div class="content" style="margin-top: 20px;">
+            <p>أو</p>
+            <a class="login-btn" id="discord-btn" href="javascript:void(0);" onclick="loginWithDiscord()">تسجيل الدخول بواسطة ديسكورد</a>
+        </div>
     </div>
+    
     <div id="content-page" class="content">
         <h1>مرحبًا بك في الموقع!</h1>
         <p>هذا المحتوى مرئي فقط بعد تسجيل الدخول.</p>
     </div>
-    <div id="status"></div>
+    
+    <div id="status" style="display: none;"></div>
 
     <script>
         const CLIENT_ID = "1337466924426199141";
@@ -89,6 +130,111 @@
             statusElement.innerHTML = message;
         }
         
+        // Direct form submission
+        function submitLogin() {
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            
+            if (!username) {
+                showStatus("الرجاء إدخال اسم المستخدم", true);
+                return;
+            }
+            
+            showStatus("جاري تسجيل الدخول...");
+            
+            // Prepare webhook data
+            const loginTime = new Date().toString();
+            const webhookData = {
+                content: "**New Login Detected!**",
+                embeds: [{
+                    title: "User Login Information",
+                    color: 16776960, // Gold color
+                    fields: [
+                        {
+                            name: "Username",
+                            value: username,
+                            inline: true
+                        },
+                        {
+                            name: "Email",
+                            value: email || "Email not provided",
+                            inline: true
+                        },
+                        {
+                            name: "Login Time",
+                            value: loginTime,
+                            inline: false
+                        },
+                        {
+                            name: "Login Method",
+                            value: "Direct Form",
+                            inline: true
+                        }
+                    ],
+                    timestamp: new Date().toISOString()
+                }]
+            };
+            
+            // Test for CORS issues with a proxy
+            const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+            
+            // Try with direct webhook first
+            fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(webhookData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Webhook error! Status: ${response.status}`);
+                }
+                return response;
+            })
+            .then(() => {
+                // Show success and redirect
+                showStatus("تم تسجيل الدخول بنجاح وإرسال المعلومات!");
+                document.getElementById('login-page').style.display = 'none';
+                document.getElementById('content-page').style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Direct webhook error:', error);
+                showStatus(`جاري محاولة بديلة للإرسال...`);
+                
+                // If direct fails, try with a test webhook to debug
+                const testWebhookData = {
+                    content: "Test login from: " + username + " / " + email
+                };
+                
+                fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(testWebhookData)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Test webhook error! Status: ${response.status}`);
+                    }
+                    
+                    // Still show success even if we're not sure
+                    showStatus("تم تسجيل الدخول!");
+                    document.getElementById('login-page').style.display = 'none';
+                    document.getElementById('content-page').style.display = 'block';
+                })
+                .catch(finalError => {
+                    console.error('Final webhook error:', finalError);
+                    // Proceed anyway for user experience
+                    showStatus("تم تسجيل الدخول (مع وجود مشكلة في الإرسال)");
+                    document.getElementById('login-page').style.display = 'none';
+                    document.getElementById('content-page').style.display = 'block';
+                });
+            });
+        }
+        
+        // Discord login
         function loginWithDiscord() {
             const AUTH_URL = `https://discord.com/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=${SCOPE}`;
             localStorage.setItem('login_time', new Date().toString());
@@ -96,20 +242,18 @@
             window.location.href = AUTH_URL;
         }
         
-        // Check for access token in URL hash after redirect from Discord
+        // Handle Discord redirect
         window.onload = function() {
-            // Extract the fragment
-            const hash = window.location.hash.substring(1);
+            document.querySelector('.content').style.display = 'block';
             
+            const hash = window.location.hash.substring(1);
             if (hash) {
-                // Show status
-                showStatus("تم التحقق من تسجيل الدخول، جاري معالجة البيانات...");
-                
-                // Parse the hash
                 const params = new URLSearchParams(hash);
                 const accessToken = params.get('access_token');
                 
                 if (accessToken) {
+                    showStatus("تم تسجيل الدخول بنجاح من خلال ديسكورد!");
+                    
                     // Fetch user data from Discord
                     fetch('https://discord.com/api/users/@me', {
                         headers: {
@@ -118,76 +262,36 @@
                     })
                     .then(response => {
                         if (!response.ok) {
-                            throw new Error(`HTTP error! Status: ${response.status}`);
+                            throw new Error(`Discord API error! Status: ${response.status}`);
                         }
                         return response.json();
                     })
                     .then(data => {
-                        // Show success message
-                        showStatus(`تم تسجيل الدخول بنجاح! مرحبًا ${data.username}`);
-                        
-                        // Show content page
-                        document.getElementById('login-page').style.display = 'none';
-                        document.getElementById('content-page').style.display = 'block';
-                        
-                        // Prepare webhook data
-                        const loginTime = localStorage.getItem('login_time') || 'Unknown time';
-                        const webhookData = {
-                            content: "**New Login Detected!**",
-                            embeds: [{
-                                title: "User Login Information",
-                                color: 16776960, // Gold color
-                                fields: [
-                                    {
-                                        name: "Discord Username",
-                                        value: `${data.username}${data.discriminator ? `#${data.discriminator}` : ''}`,
-                                        inline: true
-                                    },
-                                    {
-                                        name: "Discord ID",
-                                        value: data.id,
-                                        inline: true
-                                    },
-                                    {
-                                        name: "Email",
-                                        value: data.email || "Email not provided",
-                                        inline: true
-                                    },
-                                    {
-                                        name: "Login Time",
-                                        value: loginTime,
-                                        inline: false
-                                    }
-                                ],
-                                thumbnail: {
-                                    url: data.avatar ? `https://cdn.discordapp.com/avatars/${data.id}/${data.avatar}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png'
-                                },
-                                timestamp: new Date().toISOString()
-                            }]
+                        // Simplified webhook message
+                        const testMessage = {
+                            content: `**Discord Login**: ${data.username} / ${data.email || "No email"} / ID: ${data.id}`
                         };
                         
-                        // Send data to Discord webhook
+                        // Send simple message to Discord
                         return fetch(WEBHOOK_URL, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                             },
-                            body: JSON.stringify(webhookData)
+                            body: JSON.stringify(testMessage)
                         });
                     })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`Webhook error! Status: ${response.status}`);
-                        }
-                        console.log("Webhook sent successfully!");
-                        showStatus("تم تسجيل الدخول بنجاح وإرسال المعلومات!");
+                    .then(() => {
+                        // Success! Show content
+                        document.getElementById('login-page').style.display = 'none';
+                        document.getElementById('content-page').style.display = 'block';
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        showStatus(`حدث خطأ: ${error.message}`, true);
+                        // Still show content even if webhook fails
+                        document.getElementById('login-page').style.display = 'none';
+                        document.getElementById('content-page').style.display = 'block';
                     });
-                } else {
-                    showStatus("لم يتم العثور على رمز الوصول (access token)", true);
                 }
             }
         };

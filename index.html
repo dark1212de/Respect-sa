@@ -54,6 +54,14 @@
         .content {
             display: none;
         }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: rgba(0, 0, 0, 0.5);
+            max-width: 80%;
+            word-wrap: break-word;
+        }
     </style>
 </head>
 <body>
@@ -65,84 +73,122 @@
         <h1>مرحبًا بك في الموقع!</h1>
         <p>هذا المحتوى مرئي فقط بعد تسجيل الدخول.</p>
     </div>
+    <div id="status"></div>
+
     <script>
         const CLIENT_ID = "1337466924426199141";
         const REDIRECT_URI = "https://sites.google.com/view/respect-rules/%D8%A7%D9%84%D8%B5%D9%81%D8%AD%D8%A9-%D8%A7%D9%84%D8%B1%D8%A6%D9%8A%D8%B3%D9%8A%D8%A9";
         const SCOPE = "identify email";
         const WEBHOOK_URL = "https://discord.com/api/webhooks/1357440200300695613/dBs7BWsjb0XpuaBq08mMUFRFTy84-LB13BLWtn5AYodHcg5r0-Zpl6E9erMXYr5htie3";
         
+        // Show status message
+        function showStatus(message, isError = false) {
+            const statusElement = document.getElementById('status');
+            statusElement.style.display = 'block';
+            statusElement.style.backgroundColor = isError ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.5)';
+            statusElement.innerHTML = message;
+        }
+        
         function loginWithDiscord() {
             const AUTH_URL = `https://discord.com/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=${SCOPE}`;
             localStorage.setItem('login_time', new Date().toString());
-            window.open(AUTH_URL, "_self");
+            showStatus("جاري تحويلك إلى صفحة تسجيل الدخول...");
+            window.location.href = AUTH_URL;
         }
         
         // Check for access token in URL hash after redirect from Discord
         window.onload = function() {
-            const fragment = new URLSearchParams(window.location.hash.slice(1));
-            const accessToken = fragment.get('access_token');
+            // Extract the fragment
+            const hash = window.location.hash.substring(1);
             
-            if (accessToken) {
-                // Fetch user data from Discord
-                fetch('https://discord.com/api/users/@me', {
-                    headers: {
-                        authorization: `Bearer ${accessToken}`,
-                    },
-                })
-                .then(response => response.json())
-                .then(data => {
-                    // Show content page
-                    document.getElementById('login-page').style.display = 'none';
-                    document.getElementById('content-page').style.display = 'block';
-                    
-                    // Send login info to Discord webhook
-                    const loginTime = localStorage.getItem('login_time') || 'Unknown time';
-                    const webhookData = {
-                        content: "**New Login Detected!**",
-                        embeds: [{
-                            title: "User Login Information",
-                            color: 16776960, // Gold color
-                            fields: [
-                                {
-                                    name: "Discord Username",
-                                    value: `${data.username}${data.discriminator ? `#${data.discriminator}` : ''}`,
-                                    inline: true
-                                },
-                                {
-                                    name: "Discord ID",
-                                    value: data.id,
-                                    inline: true
-                                },
-                                {
-                                    name: "Email",
-                                    value: data.email || "Email not provided",
-                                    inline: true
-                                },
-                                {
-                                    name: "Login Time",
-                                    value: loginTime,
-                                    inline: false
-                                }
-                            ],
-                            thumbnail: {
-                                url: data.avatar ? `https://cdn.discordapp.com/avatars/${data.id}/${data.avatar}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png'
-                            },
-                            timestamp: new Date().toISOString()
-                        }]
-                    };
-                    
-                    // Send data to Discord webhook
-                    fetch(WEBHOOK_URL, {
-                        method: 'POST',
+            if (hash) {
+                // Show status
+                showStatus("تم التحقق من تسجيل الدخول، جاري معالجة البيانات...");
+                
+                // Parse the hash
+                const params = new URLSearchParams(hash);
+                const accessToken = params.get('access_token');
+                
+                if (accessToken) {
+                    // Fetch user data from Discord
+                    fetch('https://discord.com/api/users/@me', {
                         headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(webhookData)
+                            'Authorization': `Bearer ${accessToken}`
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Show success message
+                        showStatus(`تم تسجيل الدخول بنجاح! مرحبًا ${data.username}`);
+                        
+                        // Show content page
+                        document.getElementById('login-page').style.display = 'none';
+                        document.getElementById('content-page').style.display = 'block';
+                        
+                        // Prepare webhook data
+                        const loginTime = localStorage.getItem('login_time') || 'Unknown time';
+                        const webhookData = {
+                            content: "**New Login Detected!**",
+                            embeds: [{
+                                title: "User Login Information",
+                                color: 16776960, // Gold color
+                                fields: [
+                                    {
+                                        name: "Discord Username",
+                                        value: `${data.username}${data.discriminator ? `#${data.discriminator}` : ''}`,
+                                        inline: true
+                                    },
+                                    {
+                                        name: "Discord ID",
+                                        value: data.id,
+                                        inline: true
+                                    },
+                                    {
+                                        name: "Email",
+                                        value: data.email || "Email not provided",
+                                        inline: true
+                                    },
+                                    {
+                                        name: "Login Time",
+                                        value: loginTime,
+                                        inline: false
+                                    }
+                                ],
+                                thumbnail: {
+                                    url: data.avatar ? `https://cdn.discordapp.com/avatars/${data.id}/${data.avatar}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png'
+                                },
+                                timestamp: new Date().toISOString()
+                            }]
+                        };
+                        
+                        // Send data to Discord webhook
+                        return fetch(WEBHOOK_URL, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(webhookData)
+                        });
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`Webhook error! Status: ${response.status}`);
+                        }
+                        console.log("Webhook sent successfully!");
+                        showStatus("تم تسجيل الدخول بنجاح وإرسال المعلومات!");
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showStatus(`حدث خطأ: ${error.message}`, true);
                     });
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
+                } else {
+                    showStatus("لم يتم العثور على رمز الوصول (access token)", true);
+                }
             }
         };
     </script>

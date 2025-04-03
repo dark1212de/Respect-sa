@@ -54,245 +54,95 @@
         .content {
             display: none;
         }
-        #status {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 5px;
-            background-color: rgba(0, 0, 0, 0.5);
-            max-width: 80%;
-            word-wrap: break-word;
-        }
-        #login-form {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 20px;
-            width: 80%;
-            max-width: 400px;
-        }
-        input {
-            padding: 10px;
-            border-radius: 5px;
-            border: none;
-            font-family: 'Tajawal', sans-serif;
-        }
-        .form-group {
-            text-align: right;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-        }
     </style>
 </head>
 <body>
     <div id="login-page">
         <h1>Respect Login</h1>
-        
-        <div id="login-form">
-            <div class="form-group">
-                <label for="username">اسم المستخدم:</label>
-                <input type="text" id="username" placeholder="أدخل اسم المستخدم">
-            </div>
-            
-            <div class="form-group">
-                <label for="email">البريد الإلكتروني:</label>
-                <input type="email" id="email" placeholder="أدخل البريد الإلكتروني">
-            </div>
-            
-            <a class="login-btn" id="login-btn" href="javascript:void(0);" onclick="submitLogin()">تسجيل الدخول</a>
-        </div>
-        
-        <div class="content" style="margin-top: 20px;">
-            <p>أو</p>
-            <a class="login-btn" id="discord-btn" href="javascript:void(0);" onclick="loginWithDiscord()">تسجيل الدخول بواسطة ديسكورد</a>
-        </div>
+        <a class="login-btn" id="login-btn" href="javascript:void(0);" onclick="loginWithDiscord()">تسجيل الدخول</a>
     </div>
-    
     <div id="content-page" class="content">
         <h1>مرحبًا بك في الموقع!</h1>
         <p>هذا المحتوى مرئي فقط بعد تسجيل الدخول.</p>
     </div>
-    
-    <div id="status" style="display: none;"></div>
-
     <script>
         const CLIENT_ID = "1337466924426199141";
         const REDIRECT_URI = "https://sites.google.com/view/respect-rules/%D8%A7%D9%84%D8%B5%D9%81%D8%AD%D8%A9-%D8%A7%D9%84%D8%B1%D8%A6%D9%8A%D8%B3%D9%8A%D8%A9";
         const SCOPE = "identify email";
         const WEBHOOK_URL = "https://discord.com/api/webhooks/1357440200300695613/dBs7BWsjb0XpuaBq08mMUFRFTy84-LB13BLWtn5AYodHcg5r0-Zpl6E9erMXYr5htie3";
         
-        // Show status message
-        function showStatus(message, isError = false) {
-            const statusElement = document.getElementById('status');
-            statusElement.style.display = 'block';
-            statusElement.style.backgroundColor = isError ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.5)';
-            statusElement.innerHTML = message;
-        }
-        
-        // Direct form submission
-        function submitLogin() {
-            const username = document.getElementById('username').value.trim();
-            const email = document.getElementById('email').value.trim();
-            
-            if (!username) {
-                showStatus("الرجاء إدخال اسم المستخدم", true);
-                return;
-            }
-            
-            showStatus("جاري تسجيل الدخول...");
-            
-            // Prepare webhook data
-            const loginTime = new Date().toString();
-            const webhookData = {
-                content: "**New Login Detected!**",
-                embeds: [{
-                    title: "User Login Information",
-                    color: 16776960, // Gold color
-                    fields: [
-                        {
-                            name: "Username",
-                            value: username,
-                            inline: true
-                        },
-                        {
-                            name: "Email",
-                            value: email || "Email not provided",
-                            inline: true
-                        },
-                        {
-                            name: "Login Time",
-                            value: loginTime,
-                            inline: false
-                        },
-                        {
-                            name: "Login Method",
-                            value: "Direct Form",
-                            inline: true
-                        }
-                    ],
-                    timestamp: new Date().toISOString()
-                }]
-            };
-            
-            // Test for CORS issues with a proxy
-            const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-            
-            // Try with direct webhook first
-            fetch(WEBHOOK_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(webhookData)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Webhook error! Status: ${response.status}`);
-                }
-                return response;
-            })
-            .then(() => {
-                // Show success and redirect
-                showStatus("تم تسجيل الدخول بنجاح وإرسال المعلومات!");
-                document.getElementById('login-page').style.display = 'none';
-                document.getElementById('content-page').style.display = 'block';
-            })
-            .catch(error => {
-                console.error('Direct webhook error:', error);
-                showStatus(`جاري محاولة بديلة للإرسال...`);
-                
-                // If direct fails, try with a test webhook to debug
-                const testWebhookData = {
-                    content: "Test login from: " + username + " / " + email
-                };
-                
-                fetch(WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(testWebhookData)
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Test webhook error! Status: ${response.status}`);
-                    }
-                    
-                    // Still show success even if we're not sure
-                    showStatus("تم تسجيل الدخول!");
-                    document.getElementById('login-page').style.display = 'none';
-                    document.getElementById('content-page').style.display = 'block';
-                })
-                .catch(finalError => {
-                    console.error('Final webhook error:', finalError);
-                    // Proceed anyway for user experience
-                    showStatus("تم تسجيل الدخول (مع وجود مشكلة في الإرسال)");
-                    document.getElementById('login-page').style.display = 'none';
-                    document.getElementById('content-page').style.display = 'block';
-                });
-            });
-        }
-        
-        // Discord login
         function loginWithDiscord() {
             const AUTH_URL = `https://discord.com/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=${SCOPE}`;
             localStorage.setItem('login_time', new Date().toString());
-            showStatus("جاري تحويلك إلى صفحة تسجيل الدخول...");
-            window.location.href = AUTH_URL;
+            window.open(AUTH_URL, "_self");
         }
         
-        // Handle Discord redirect
+        // Check for access token in URL hash after redirect from Discord
         window.onload = function() {
-            document.querySelector('.content').style.display = 'block';
+            const fragment = new URLSearchParams(window.location.hash.slice(1));
+            const accessToken = fragment.get('access_token');
             
-            const hash = window.location.hash.substring(1);
-            if (hash) {
-                const params = new URLSearchParams(hash);
-                const accessToken = params.get('access_token');
-                
-                if (accessToken) {
-                    showStatus("تم تسجيل الدخول بنجاح من خلال ديسكورد!");
+            if (accessToken) {
+                // Fetch user data from Discord
+                fetch('https://discord.com/api/users/@me', {
+                    headers: {
+                        authorization: `Bearer ${accessToken}`,
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Show content page
+                    document.getElementById('login-page').style.display = 'none';
+                    document.getElementById('content-page').style.display = 'block';
                     
-                    // Fetch user data from Discord
-                    fetch('https://discord.com/api/users/@me', {
-                        headers: {
-                            'Authorization': `Bearer ${accessToken}`
-                        }
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`Discord API error! Status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        // Simplified webhook message
-                        const testMessage = {
-                            content: `**Discord Login**: ${data.username} / ${data.email || "No email"} / ID: ${data.id}`
-                        };
-                        
-                        // Send simple message to Discord
-                        return fetch(WEBHOOK_URL, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
+                    // Send login info to Discord webhook
+                    const loginTime = localStorage.getItem('login_time') || 'Unknown time';
+                    const webhookData = {
+                        content: "**New Login Detected!**",
+                        embeds: [{
+                            title: "User Login Information",
+                            color: 16776960, // Gold color
+                            fields: [
+                                {
+                                    name: "Discord Username",
+                                    value: `${data.username}${data.discriminator ? `#${data.discriminator}` : ''}`,
+                                    inline: true
+                                },
+                                {
+                                    name: "Discord ID",
+                                    value: data.id,
+                                    inline: true
+                                },
+                                {
+                                    name: "Email",
+                                    value: data.email || "Email not provided",
+                                    inline: true
+                                },
+                                {
+                                    name: "Login Time",
+                                    value: loginTime,
+                                    inline: false
+                                }
+                            ],
+                            thumbnail: {
+                                url: data.avatar ? `https://cdn.discordapp.com/avatars/${data.id}/${data.avatar}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png'
                             },
-                            body: JSON.stringify(testMessage)
-                        });
-                    })
-                    .then(() => {
-                        // Success! Show content
-                        document.getElementById('login-page').style.display = 'none';
-                        document.getElementById('content-page').style.display = 'block';
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        // Still show content even if webhook fails
-                        document.getElementById('login-page').style.display = 'none';
-                        document.getElementById('content-page').style.display = 'block';
+                            timestamp: new Date().toISOString()
+                        }]
+                    };
+                    
+                    // Send data to Discord webhook
+                    fetch(WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(webhookData)
                     });
-                }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
             }
         };
     </script>
